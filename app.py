@@ -37,6 +37,6 @@ gr.Interface(
     title=title,
     description=description,
     article=article,
-    examples=[],
+    examples=[['lion.png']],
     enable_queue=True
     ).launch()
