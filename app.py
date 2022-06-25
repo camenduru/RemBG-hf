@@ -1,12 +1,9 @@
-import gradio as gr
+## Modified from Akhaliq Hugging Face Demo
+## https://huggingface.co/akhaliq
 
-'''
-@paper: GAN Prior Embedded Network for Blind Face Restoration in the Wild (CVPR2021)
-@author: yangxy (yangtao9009@gmail.com)
-'''
+import gradio as gr
 import os
 import cv2
-  
 
 def inference(file):
     im = cv2.imread(file, cv2.IMREAD_COLOR)
@@ -26,7 +23,6 @@ def inference(file):
         
 title = "RemBG"
 description = "Gradio demo for RemBG. To use it, simply upload your image and wait. Read more at the link below."
-
 article = "<p style='text-align: center;'><a href='https://github.com/danielgatis/rembg' target='_blank'>Github Repo</a></p>"
 
 
