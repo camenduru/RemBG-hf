@@ -1,13 +1,12 @@
 ---
-title: RemBG
-emoji: 🐠
+title: Rembg
+emoji: 👀
 colorFrom: pink
-colorTo: yellow
+colorTo: indigo
 sdk: gradio
 sdk_version: 3.0.20
 app_file: app.py
 pinned: false
-license: mit
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
