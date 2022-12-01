@@ -33,7 +33,9 @@ def main() -> None:
     "-m",
     "--model",
     default="u2net",
-    type=click.Choice(["u2net", "u2netp", "u2net_human_seg", "u2net_cloth_seg"]),
+    type=click.Choice(
+        ["u2net", "u2netp", "u2net_human_seg", "u2net_cloth_seg", "silueta"]
+    ),
     show_default=True,
     show_choices=True,
     help="model name",
@@ -75,6 +77,13 @@ def main() -> None:
     is_flag=True,
     show_default=True,
     help="output only the mask",
+)
+@click.option(
+    "-ppm",
+    "--post-process-mask",
+    is_flag=True,
+    show_default=True,
+    help="post process the mask",
 )
 @click.argument(
     "input", default=(None if sys.stdin.isatty() else "-"), type=click.File("rb")
@@ -93,7 +102,9 @@ def i(model: str, input: IO, output: IO, **kwargs) -> None:
     "-m",
     "--model",
     default="u2net",
-    type=click.Choice(["u2net", "u2netp", "u2net_human_seg", "u2net_cloth_seg"]),
+    type=click.Choice(
+        ["u2net", "u2netp", "u2net_human_seg", "u2net_cloth_seg", "silueta"]
+    ),
     show_default=True,
     show_choices=True,
     help="model name",
@@ -135,6 +146,13 @@ def i(model: str, input: IO, output: IO, **kwargs) -> None:
     is_flag=True,
     show_default=True,
     help="output only the mask",
+)
+@click.option(
+    "-ppm",
+    "--post-process-mask",
+    is_flag=True,
+    show_default=True,
+    help="post process the mask",
 )
 @click.option(
     "-w",
@@ -243,7 +261,15 @@ def p(
     show_default=True,
     help="log level",
 )
-def s(port: int, log_level: str) -> None:
+@click.option(
+    "-t",
+    "--threads",
+    default=None,
+    type=int,
+    show_default=True,
+    help="number of worker threads",
+)
+def s(port: int, log_level: str, threads: int) -> None:
     sessions: dict[str, BaseSession] = {}
     tags_metadata = [
         {
@@ -284,6 +310,7 @@ def s(port: int, log_level: str) -> None:
         u2netp = "u2netp"
         u2net_human_seg = "u2net_human_seg"
         u2net_cloth_seg = "u2net_cloth_seg"
+        silueta = "silueta"
 
     class CommonQueryParams:
         def __init__(
@@ -309,6 +336,7 @@ def s(port: int, log_level: str) -> None:
                 default=10, ge=0, description="Alpha Matting (Erode Structure Size)"
             ),
             om: bool = Query(default=False, description="Only Mask"),
+            ppm: bool = Query(default=False, description="Post Process Mask"),
         ):
             self.model = model
             self.a = a
@@ -316,6 +344,7 @@ def s(port: int, log_level: str) -> None:
             self.ab = ab
             self.ae = ae
             self.om = om
+            self.ppm = ppm
 
     class CommonQueryPostParams:
         def __init__(
@@ -341,6 +370,7 @@ def s(port: int, log_level: str) -> None:
                 default=10, ge=0, description="Alpha Matting (Erode Structure Size)"
             ),
             om: bool = Form(default=False, description="Only Mask"),
+            ppm: bool = Form(default=False, description="Post Process Mask"),
         ):
             self.model = model
             self.a = a
@@ -348,6 +378,7 @@ def s(port: int, log_level: str) -> None:
             self.ab = ab
             self.ae = ae
             self.om = om
+            self.ppm = ppm
 
     def im_without_bg(content: bytes, commons: CommonQueryParams) -> Response:
         return Response(
@@ -361,9 +392,18 @@ def s(port: int, log_level: str) -> None:
                 alpha_matting_background_threshold=commons.ab,
                 alpha_matting_erode_size=commons.ae,
                 only_mask=commons.om,
+                post_process_mask=commons.ppm,
             ),
             media_type="image/png",
         )
+
+    @app.on_event("startup")
+    def startup():
+        if threads is not None:
+            from anyio import CapacityLimiter
+            from anyio.lowlevel import RunVar
+
+            RunVar("_default_thread_limiter").set(CapacityLimiter(threads))
 
     @app.get(
         path="/",
