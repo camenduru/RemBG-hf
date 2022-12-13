@@ -5,7 +5,7 @@ import gradio as gr
 import os
 import cv2
 
-def inference(file, af, mask):
+def inference(file, mask, af):
     im = cv2.imread(file, cv2.IMREAD_COLOR)
     cv2.imwrite(os.path.join("input.png"), im)
 
@@ -28,11 +28,23 @@ article = "<p style='text-align: center;'><a href='https://github.com/danielgati
 
 gr.Interface(
     inference, 
-    [gr.inputs.Image(type="filepath", label="Input"), gr.Slider(10, 25, value=10, label="Alpha matting"), gr.Radio(choices = ["Alpha matting", "Mask only"], value = "Alpha matting")], 
+    [
+        gr.inputs.Image(type="filepath", label="Input"),
+        gr.inputs.Slider(10, 25, default=10, label="Alpha matting"), 
+        gr.inputs.Radio(
+            [
+                "Default", 
+                "Mask only"
+            ], 
+            type="value",
+            default="Alpha matting",
+            label="Choices"
+        )
+    ], 
     gr.outputs.Image(type="file", label="Output"),
     title=title,
     description=description,
     article=article,
-    examples=[['lion.png']],
+    examples=[["lion.png", 10, "Default"], ["girl.jpg", 10, "Default"]],
     enable_queue=True
     ).launch()
