@@ -9,9 +9,7 @@ def inference(file, af, mask, model):
     im = cv2.imread(file, cv2.IMREAD_COLOR)
     cv2.imwrite(os.path.join("input.png"), im)
 
-    from rembg import remove
-    from rembg.session_base import BaseSession
-    from rembg.session_factory import new_session
+    from rembg import new_session, remove
 
     input_path = 'input.png'
     output_path = 'output.png'
@@ -19,15 +17,15 @@ def inference(file, af, mask, model):
     with open(input_path, 'rb') as i:
         with open(output_path, 'wb') as o:
             input = i.read()
-            sessions: dict[str, BaseSession] = {}
             output = remove(
                 input, 
-                session=sessions.setdefault(
-                    model, new_session(model)
-                ),
+                session = new_session(model), 
                 alpha_matting_erode_size = af, 
                 only_mask = (True if mask == "Mask only" else False)
-            )
+            ) 
+            
+            
+            
             o.write(output)
     return os.path.join("output.png")
         
@@ -40,7 +38,7 @@ gr.Interface(
     inference, 
     [
         gr.inputs.Image(type="filepath", label="Input"),
-        gr.inputs.Slider(10, 25, default=10, label="Alpha matting"), 
+        gr.inputs.Slider(10, 25, default=10, label="Alpha matting erode size"), 
         gr.inputs.Radio(
             [
                 "Default", 
@@ -55,14 +53,16 @@ gr.Interface(
             "u2netp", 
             "u2net_human_seg", 
             "u2net_cloth_seg", 
-            "silueta"
+            "silueta",
+            "isnet-general-use",
+            "sam",
             ], 
             type="value",
             default="u2net",
             label="Models"
         ),
     ], 
-    gr.outputs.Image(type="file", label="Output"),
+    gr.outputs.Image(type="filepath", label="Output"),
     title=title,
     description=description,
     article=article,

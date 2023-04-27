@@ -1,6 +1,6 @@
 import io
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from cv2 import (
@@ -18,8 +18,8 @@ from pymatting.foreground.estimate_foreground_ml import estimate_foreground_ml
 from pymatting.util.util import stack_images
 from scipy.ndimage import binary_erosion
 
-from .session_base import BaseSession
 from .session_factory import new_session
+from .sessions.base import BaseSession
 
 kernel = getStructuringElement(MORPH_ELLIPSE, (3, 3))
 
@@ -37,7 +37,6 @@ def alpha_matting_cutout(
     background_threshold: int,
     erode_structure_size: int,
 ) -> PILImage:
-
     if img.mode == "RGBA" or img.mode == "CMYK":
         img = img.convert("RGB")
 
@@ -106,6 +105,14 @@ def post_process(mask: np.ndarray) -> np.ndarray:
     return mask
 
 
+def apply_background_color(img: PILImage, color: Tuple[int, int, int, int]) -> PILImage:
+    r, g, b, a = color
+    colored_image = Image.new("RGBA", img.size, (r, g, b, a))
+    colored_image.paste(img, mask=img)
+
+    return colored_image
+
+
 def remove(
     data: Union[bytes, PILImage, np.ndarray],
     alpha_matting: bool = False,
@@ -115,8 +122,10 @@ def remove(
     session: Optional[BaseSession] = None,
     only_mask: bool = False,
     post_process_mask: bool = False,
+    bgcolor: Optional[Tuple[int, int, int, int]] = None,
+    *args: Optional[Any],
+    **kwargs: Optional[Any]
 ) -> Union[bytes, PILImage, np.ndarray]:
-
     if isinstance(data, PILImage):
         return_type = ReturnType.PILLOW
         img = data
@@ -130,9 +139,9 @@ def remove(
         raise ValueError("Input type {} is not supported.".format(type(data)))
 
     if session is None:
-        session = new_session("u2net")
+        session = new_session("u2net", *args, **kwargs)
 
-    masks = session.predict(img)
+    masks = session.predict(img, *args, **kwargs)
     cutouts = []
 
     for mask in masks:
@@ -162,6 +171,9 @@ def remove(
     cutout = img
     if len(cutouts) > 0:
         cutout = get_concat_v_multi(cutouts)
+
+    if bgcolor is not None and not only_mask:
+        cutout = apply_background_color(cutout, bgcolor)
 
     if ReturnType.PILLOW == return_type:
         return cutout
