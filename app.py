@@ -5,7 +5,7 @@ import gradio as gr
 import os
 import cv2
 
-def inference(file, af, mask, model):
+def inference(file, mask, model):
     im = cv2.imread(file, cv2.IMREAD_COLOR)
     cv2.imwrite(os.path.join("input.png"), im)
 
@@ -20,7 +20,6 @@ def inference(file, af, mask, model):
             output = remove(
                 input, 
                 session = new_session(model), 
-                alpha_matting_erode_size = af, 
                 only_mask = (True if mask == "Mask only" else False)
             ) 
             
@@ -38,7 +37,6 @@ gr.Interface(
     inference, 
     [
         gr.inputs.Image(type="filepath", label="Input"),
-        gr.inputs.Slider(10, 25, default=10, label="Alpha matting erode size"), 
         gr.inputs.Radio(
             [
                 "Default", 
@@ -55,10 +53,11 @@ gr.Interface(
             "u2net_cloth_seg", 
             "silueta",
             "isnet-general-use",
+            "isnet-anime",
             "sam",
             ], 
             type="value",
-            default="u2net",
+            default="isnet-general-use",
             label="Models"
         ),
     ], 
@@ -66,6 +65,6 @@ gr.Interface(
     title=title,
     description=description,
     article=article,
-    examples=[["lion.png", 10, "Default", "u2net"], ["girl.jpg", 10, "Default", "u2net"]],
+    examples=[["lion.png", "Default", "u2net"], ["girl.jpg", "Default", "u2net"], ["anime-girl.jpg", "Default", "isnet-anime"]],
     enable_queue=True
     ).launch()
